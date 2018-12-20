@@ -47,30 +47,36 @@ end
 
 
 
-local function startingdng(offset)
+local function create_startingdng(offset)
 	local stdr=minetest.get_dir_list(modpath..DIR_DELIM.."schems_dng", false)
 	local actuallpos={x=0,y=1000,z=100*offset}
 	local startingdngcreate={}
-	local placepos={}
-	local endpos={}
 	local rooms={}
 	local corridorpath = modpath..DIR_DELIM.."schems_dng"..DIR_DELIM
 				.."data"..DIR_DELIM.."corridor.mts"
-	for i=1,3 do
+	table.insert(startingdngcreate, "start.mts")
+	local i = 1
+	while stdr[i] and stdr[i] ~=  "start.mts" do
+		i = i + 1
+	end	
+	table.remove(stdr,i)
+	
+	for i=1,math.min(#stdr,3) do
 		local r=math.random(1,#stdr)
 		local v=stdr[r]
 		table.remove(stdr,r)
 		table.insert(startingdngcreate, v)
+	end	
+	
+	for i,path in ipairs(startingdngcreate) do
 		rooms[i]={}
-		rooms[i].path=modpath..DIR_DELIM.."schems_dng"..DIR_DELIM..startingdngcreate[i]
+		rooms[i].path=modpath..DIR_DELIM.."schems_dng"..DIR_DELIM..path
 		
-		startingdngcreate[i]=string.sub(startingdngcreate[i],1,-4) .. "txt"
-		
+		path=string.sub(path,1,-4) .. "txt"
 		local filepath=modpath..DIR_DELIM.."schems_dng"..DIR_DELIM
-				.."data"..DIR_DELIM..startingdngcreate[i]
+				.."data"..DIR_DELIM..path
 		
 		local file=io.open(filepath)
-		assert(file,filepath)
 		rooms[i].placepos=minetest.deserialize(assert(file:read("*l")))
 		rooms[i].endpos=minetest.deserialize(assert(file:read("*l")))
 		size=minetest.deserialize(assert(file:read("*l")))
@@ -78,9 +84,10 @@ local function startingdng(offset)
 		
 		rooms[i].endpos.x = rooms[i].endpos.x + size.x
 	end
-	corridor={path=corridorpath,placepos=vector.new(0,0,0),endpos=vector.new(10,3,0)}
+	
+	corridor={path=corridorpath,placepos=vector.new(0,0,0),endpos=vector.new(10,4,0)}
+	
 	local iter = placer(actuallpos,rooms,corridor)
-	minetest.chat_send_all(dump2(rooms))
 	while iter() do
 	end
 end
@@ -111,8 +118,8 @@ myinsert(hub, name)
 		leave(player)
 		myinsert(startingdng,name)
 		local offset = playertracker[name]["pos"]
-		startingdng(offset)
-		player:setpos({x=50,y=1000,z=100*offset})
+		create_startingdng(offset)
+		player:setpos({x=0,y=1000.5,z=100*offset})
 	end	
 
 	end
@@ -124,7 +131,7 @@ minetest.register_chatcommand("abfrage",{
  func=function(name,param)
 	local offset=tonumber(param) or 0
 	local player=minetest.get_player_by_name("singleplayer")
-	startingdng(offset)
+	create_startingdng(offset)
 	player:setpos({x=0,y=1000,z=100*offset+0.5})
 	player:set_look_vertical(0)
 	player:set_look_horizontal(math.pi*1.5)
